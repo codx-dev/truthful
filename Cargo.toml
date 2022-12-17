@@ -1,0 +1,20 @@
+[package]
+name = "truthful"
+version = "0.1.0"
+authors = ["Victor Lopez <victor@codx.io>"]
+categories = ["cli", "math"]
+edition = "2021"
+license = "MIT/Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/codx-dev/truthful"
+description = "A logical expression parser, optimizer and evaluator."
+
+[dependencies]
+cli-table = "0.4"
+dirs = "4.0"
+permutator = "0.4"
+pest = "2.5"
+pest_derive = "2.5"
+rustyline = "10.0"
+serde = "1.0"
+toml-base-config = "0.1"

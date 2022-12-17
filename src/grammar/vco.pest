@@ -1,0 +1,32 @@
+not = @{ "!" | ^"not" }
+unary = _{ not }
+
+and = @{ "^" | ^"and" }
+or = @{ "v" | ^"or" }
+xor = @{ "+" | ^"xor" }
+operand = _{ and | or | xor }
+
+cond = @{ "->" | ^"cond" }
+bicond = @{ "<->" | ^"bicond" }
+equals = @{ "=" | ^"equals" }
+linker = _{ cond | bicond | equals }
+
+infix = _{ operand | linker }
+
+ws = _{ " " | "\t" | "\n" }
+
+alpha = _{ 'a'..'z' | 'A'..'Z' }
+num = _{ '0'..'9' }
+
+singlequotes = _{ "'" }
+
+identifier = {
+    !(unary | operand | linker) ~ alpha ~ ( alpha | num | "_" | "-" )* |
+    ( "\"" ~ (!"\"" ~ ANY)* ~ "\"" ) |
+    ( "'" ~ (!"'" ~ ANY)* ~ "'" )
+}
+
+term = { unary* ~ ws* ~ (identifier | "(" ~ ws* ~ expr ~ ws* ~ ")") }
+expr = { term ~ (ws* ~ infix ~ ws* ~ term)* }
+
+statement = { SOI ~ ws* ~ expr ~ ws* ~ EOI }
