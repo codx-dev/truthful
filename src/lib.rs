@@ -21,7 +21,7 @@ pub enum Instruction {
 
 impl Instruction {
     pub fn evaluate(&self) -> Result<Table, String> {
-        traverser::Evaluator::run(self).map(|ev| Evaluation::into_table(ev))
+        traverser::Evaluator::run(self).map(Evaluation::into_table)
     }
 
     pub const fn eq_true(&self) -> bool {
@@ -42,6 +42,128 @@ impl Instruction {
 
     pub const fn is_or(&self) -> bool {
         matches!(self, Self::Or(_, _))
+    }
+
+    fn nand_transform(self) -> Self {
+        use Instruction::*;
+        match self {
+            True => True,
+            False => False,
+            Argument(a) => Argument(a),
+
+            Not(x) => Not(Box::new(x.nand_transform())),
+
+            Or(l, r) => {
+                let l = l.nand_transform();
+                let r = r.nand_transform();
+
+                let l = Not(Box::new(l));
+                let r = Not(Box::new(r));
+                let x = And(Box::new(l), Box::new(r));
+
+                Not(Box::new(x))
+            }
+
+            And(l, r) => {
+                let l = l.nand_transform();
+                let r = r.nand_transform();
+
+                And(Box::new(l), Box::new(r))
+            }
+
+            // optimize removed remainder variants
+            _ => self,
+        }
+    }
+
+    fn de_morgan_expansion(self) -> Self {
+        use Instruction::*;
+        match self {
+            True => True,
+            False => False,
+            Argument(a) => Argument(a),
+
+            Not(x) => match *x {
+                And(l, r) => {
+                    let l = l.de_morgan_expansion();
+                    let r = r.de_morgan_expansion();
+
+                    let l = Not(Box::new(l));
+                    let r = Not(Box::new(r));
+
+                    Or(Box::new(l), Box::new(r))
+                }
+
+                Or(l, r) => {
+                    let l = l.de_morgan_expansion();
+                    let r = r.de_morgan_expansion();
+
+                    let l = Not(Box::new(l));
+                    let r = Not(Box::new(r));
+
+                    And(Box::new(l), Box::new(r))
+                }
+
+                _ => Not(Box::new(x.de_morgan_expansion())),
+            },
+
+            And(l, r) => {
+                let l = l.de_morgan_expansion();
+                let r = r.de_morgan_expansion();
+
+                And(Box::new(l), Box::new(r))
+            }
+
+            Or(l, r) => {
+                let l = l.de_morgan_expansion();
+                let r = r.de_morgan_expansion();
+
+                Or(Box::new(l), Box::new(r))
+            }
+
+            // optimize removed remainder variants
+            _ => self,
+        }
+    }
+
+    fn de_morgan_reduction(self) -> Self {
+        use Instruction::*;
+        match self {
+            True => True,
+            False => False,
+            Argument(a) => Argument(a),
+
+            Not(x) => {
+                let x = x.de_morgan_reduction();
+
+                Not(Box::new(x))
+            }
+
+            And(l, r) => {
+                let l = l.de_morgan_reduction();
+                let r = r.de_morgan_reduction();
+
+                let l = Not(Box::new(l));
+                let r = Not(Box::new(r));
+                let x = Or(Box::new(l), Box::new(r));
+
+                Not(Box::new(x))
+            }
+
+            Or(l, r) => {
+                let l = l.de_morgan_reduction();
+                let r = r.de_morgan_reduction();
+
+                let l = Not(Box::new(l));
+                let r = Not(Box::new(r));
+                let x = And(Box::new(l), Box::new(r));
+
+                Not(Box::new(x))
+            }
+
+            // optimize removed remainder variants
+            _ => self,
+        }
     }
 
     fn _optimize(self, context: &mut Context) -> Self {
@@ -84,9 +206,9 @@ impl Instruction {
 
                 if context.check_equivalence(&l, &r) {
                     return l;
-                } else if context.check_equivalence(&l, &Self::Not(Box::new(r.clone()))) {
-                    return False;
-                } else if context.check_equivalence(&r, &Self::Not(Box::new(l.clone()))) {
+                } else if context.check_equivalence(&l, &Self::Not(Box::new(r.clone())))
+                    || context.check_equivalence(&r, &Self::Not(Box::new(l.clone())))
+                {
                     return False;
                 }
 
@@ -101,28 +223,26 @@ impl Instruction {
                     return True;
                 } else if l.eq_false() {
                     return r;
-                } else if r.eq_false() {
-                    return l;
-                } else if l == r {
+                } else if r.eq_false() || l == r {
                     return l;
                 }
 
                 if context.check_equivalence(&l, &r) {
                     return l;
-                } else if context.check_equivalence(&l, &Self::Not(Box::new(r.clone()))) {
-                    return True;
-                } else if context.check_equivalence(&r, &Self::Not(Box::new(l.clone()))) {
+                } else if context.check_equivalence(&l, &Self::Not(Box::new(r.clone())))
+                    || context.check_equivalence(&r, &Self::Not(Box::new(l.clone())))
+                {
                     return True;
                 }
 
                 if let And(a, b) = &l {
-                    if context.check_equivalence(&r, &a) || context.check_equivalence(&r, &b) {
+                    if context.check_equivalence(&r, a) || context.check_equivalence(&r, b) {
                         return r;
                     }
                 }
 
                 if let And(a, b) = &r {
-                    if context.check_equivalence(&l, &a) || context.check_equivalence(&l, &b) {
+                    if context.check_equivalence(&l, a) || context.check_equivalence(&l, b) {
                         return l;
                     }
                 }
@@ -168,7 +288,17 @@ impl Instruction {
     }
 
     pub fn optimize(self) -> Self {
-        self._optimize(&mut Context::default())
+        let ctx = &mut Context::default();
+        self._optimize(ctx)
+            .nand_transform()
+            .de_morgan_reduction()
+            ._optimize(ctx)
+            .nand_transform()
+            .de_morgan_expansion()
+            ._optimize(ctx)
+            .nand_transform()
+            .de_morgan_reduction()
+            ._optimize(ctx)
     }
 }
 

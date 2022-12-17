@@ -112,7 +112,7 @@ fn main() {
 
         if h.exists() {
             if let Err(e) = rl.load_history(h) {
-                eprintln!("failed to load commands history: {}", e);
+                eprintln!("failed to load commands history: {e}");
             }
         }
     }
@@ -209,7 +209,7 @@ fn main() {
 
     if let Some(h) = history {
         if let Err(e) = rl.save_history(&h) {
-            eprintln!("failed to save commands history: {}", e);
+            eprintln!("failed to save commands history: {e}");
         }
     }
 

@@ -72,11 +72,10 @@ impl<'a> Arguments<'a> {
         let args: Vec<_> = args.into_iter().collect();
 
         let mut combinations = (1..=args.len())
-            .map(|size| {
+            .flat_map(|size| {
                 args.combination(size)
                     .map(|c| c.iter().map(|v| **v).collect::<Vec<_>>())
             })
-            .flatten()
             .chain(iter::once(vec![]))
             .collect::<HashSet<_>>()
             .into_iter()
@@ -142,7 +141,7 @@ impl Evaluator {
             for value in case {
                 context
                     .insert(value, true)
-                    .ok_or_else(|| "the combination provided an invalid argument!")?;
+                    .ok_or("the combination provided an invalid argument!")?;
             }
 
             let result = Self::run_with_context(instruction, &context)?;

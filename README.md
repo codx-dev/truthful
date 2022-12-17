@@ -24,3 +24,8 @@ evaluating (!"a" v "b")
 > q
 bye!
 ```
+
+# TODO
+
+* Grammar operator precedence.
+* Actual optimization (the current one is a bunch of NAND + DeMorgan naive transformations).

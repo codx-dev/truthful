@@ -1,9 +1,10 @@
 [package]
 name = "truthful"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Victor Lopez <victor@codx.io>"]
-categories = ["cli", "math"]
+categories = ["command-line-interface", "mathematics", "parser-implementations", "science"]
 edition = "2021"
+keywords = ["cli", "math", "parser"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/codx-dev/truthful"

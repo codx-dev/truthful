@@ -68,16 +68,16 @@ fn fetch_term(pairs: &mut Pairs<'_, Rule>) -> Result<Instruction, String> {
             if identifier.starts_with('"') {
                 identifier = identifier
                     .strip_prefix('"')
-                    .unwrap_or_else(|| identifier.as_str())
+                    .unwrap_or(identifier.as_str())
                     .strip_suffix('"')
-                    .unwrap_or_else(|| identifier.as_str())
+                    .unwrap_or(identifier.as_str())
                     .to_string();
-            } else if identifier.starts_with("'") {
+            } else if identifier.starts_with('\'') {
                 identifier = identifier
-                    .strip_prefix("'")
-                    .unwrap_or_else(|| identifier.as_str())
-                    .strip_suffix("'")
-                    .unwrap_or_else(|| identifier.as_str())
+                    .strip_prefix('\'')
+                    .unwrap_or(identifier.as_str())
+                    .strip_suffix('\'')
+                    .unwrap_or(identifier.as_str())
                     .to_string();
             }
             Instruction::Argument(identifier)
